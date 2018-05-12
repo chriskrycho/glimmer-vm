@@ -1,6 +1,7 @@
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 
+#[derive(Copy, Clone)]
 pub enum Action {
     StartProgram,
     EndProgram,
@@ -23,7 +24,123 @@ pub mod core {
 
 // Placeholder -- should be extern?
 pub mod ast {
-    pub struct Node;
+    #[derive(PartialEq)]
+    pub struct Program;
+
+    #[derive(Clone, PartialEq)]
+    pub struct ConcatStatement;
+
+    #[derive(Clone, PartialEq)]
+    pub enum AttrValue {
+        TextNode(TextNode),
+        MustacheStatement(MustacheStatement),
+        ConcatStatement(ConcatStatement),
+    }
+
+    #[derive(Clone, PartialEq)]
+    pub struct AttrNode {
+        pub name: String,
+        pub value: AttrValue,
+    }
+
+    #[derive(Clone, PartialEq)]
+    pub struct ElementModifierStatement;
+
+    #[derive(Clone, PartialEq)]
+    pub struct MustacheStatement;
+
+    #[derive(Clone, PartialEq)]
+    pub struct BlockStatement;
+
+    #[derive(Clone, PartialEq)]
+    pub struct PartialStatement;
+
+    #[derive(Clone, PartialEq)]
+    pub struct TextNode {
+        pub chars: String,
+    }
+
+    #[derive(Clone, PartialEq)]
+    pub struct CommentStatement {
+        value: String,
+    }
+
+    #[derive(Clone, PartialEq)]
+    pub struct MustacheCommentStatement {
+        value: String,
+    }
+
+    #[derive(Clone, PartialEq)]
+    pub struct PathExpression;
+
+    #[derive(Clone, PartialEq)]
+    pub struct SubExpression;
+
+    #[derive(Clone, PartialEq)]
+    pub struct Hash;
+
+    #[derive(Clone, PartialEq)]
+    pub struct HashPair;
+
+    #[derive(Clone, PartialEq)]
+    pub struct StringLiteral;
+
+    #[derive(Clone, PartialEq)]
+    pub struct BooleanLiteral;
+
+    #[derive(Clone, PartialEq)]
+    pub struct NumberLiteral;
+
+    #[derive(Clone, PartialEq)]
+    pub struct UndefinedLiteral;
+
+    #[derive(Clone, PartialEq)]
+    pub struct NullLiteral;
+
+    #[derive(Clone, PartialEq)]
+    pub struct ElementNode {
+        tag: String,
+        attributes: Vec<AttrNode>,
+        block_params: Vec<String>,
+        modifiers: Vec<ElementModifierStatement>,
+        comments: Vec<MustacheCommentStatement>,
+        children: Vec<Statement>,
+    }
+
+    #[derive(Clone, PartialEq)]
+    pub enum Statement {
+        MustacheStatement(MustacheStatement),
+        BlockStatement(BlockStatement),
+        PartialStatement(PartialStatement),
+        MustacheCommentStatement(MustacheCommentStatement),
+        CommentStatement(CommentStatement),
+        TextNode(TextNode),
+        ElementNode(ElementNode),
+    }
+
+    #[derive(PartialEq)]
+    pub enum Node {
+        Program(Program),
+        ElementNode(ElementNode),
+        AttrNode(AttrNode),
+        TextNode(TextNode),
+        MustacheStatement(MustacheStatement),
+        BlockStatement(BlockStatement),
+        PartialStatement(PartialStatement),
+        ConcatStatement(ConcatStatement),
+        MustacheCommentStatement(MustacheCommentStatement),
+        ElementModifierStatement(ElementModifierStatement),
+        CommentStatement(CommentStatement),
+        PathExpression(PathExpression),
+        SubExpression(SubExpression),
+        Hash(Hash),
+        HashPair(HashPair),
+        StringLiteral(StringLiteral),
+        BooleanLiteral(BooleanLiteral),
+        NumberLiteral(NumberLiteral),
+        UndefinedLiteral(UndefinedLiteral),
+        NullLiteral(NullLiteral),
+    }
 }
 
 pub trait SymbolTable {
@@ -208,16 +325,172 @@ pub struct Frame {
     pub child_template_count: usize,
     pub mustache_count: usize,
     pub actions: Vec<Action>,
-    pub blank_child_text_nodes: Option<Vec<usize>>,
+    pub blank_child_text_nodes: Option<Vec<isize>>,
     pub symbols: Option<Box<SymbolTable>>,
 }
 
+impl Frame {
+    pub fn new() -> Frame {
+        Frame {
+            parent_node: None,
+            children: None,
+            child_index: None,
+            child_count: None,
+            child_template_count: 0,
+            mustache_count: 0,
+            actions: Vec::new(),
+            blank_child_text_nodes: None,
+            symbols: None,
+        }
+    }
+}
+
 pub struct TemplateVisitor {
-    frame: Vec<Frame>,
+    current_frame_actual: Option<Frame>,
+    frame_stack: Vec<Frame>,
+    pub actions: Vec<Action>,
+    program_depth: isize, // TODO: might actually be better as an `Option` in Rust?
 }
 
 impl TemplateVisitor {
     pub fn new() -> TemplateVisitor {
-        TemplateVisitor { frame: Vec::new() }
+        TemplateVisitor {
+            current_frame_actual: None,
+            frame_stack: Vec::new(),
+            program_depth: -1,
+            actions: Vec::new(),
+        }
     }
+
+    pub fn current_frame(&mut self) -> &mut Frame {
+        self.current_frame_actual.as_mut().expect("Expected a current frame")
+    }
+
+    pub fn visit(&mut self, node: ast::Node) {
+        match node {
+            ast::Node::Program(program) => self.program(program),
+            ast::Node::ElementNode(element) => self.element_node(element),
+            ast::Node::AttrNode(attr) => self.attr_node(attr),
+            ast::Node::TextNode(text) => self.text_node(text),
+            ast::Node::BlockStatement(block) => self.block_statement(block),
+            ast::Node::PartialStatement(partial) => self.partial_statement(partial),
+            ast::Node::CommentStatement(comment) => self.comment_statement(comment),
+            ast::Node::MustacheCommentStatement(mustache_comment) => {
+                self.mustache_comment_statement(mustache_comment)
+            }
+            ast::Node::MustacheStatement(mustache_statement) => {
+                self.mustache_statement(mustache_statement)
+            }
+            _ => unimplemented!(),
+        }
+    }
+
+    pub fn program(&mut self, program: ast::Program) {
+        unimplemented!()
+        // self.program_depth += 1;
+
+        // let parentFrame = self.get_current_frame();
+        // let programFrame = self.push_frame();
+    }
+
+    pub fn element_node(&self, element: ast::ElementNode) {
+        unimplemented!()
+    }
+
+    pub fn attr_node(&mut self, attr: ast::AttrNode) {
+        match attr.value {
+            ast::AttrValue::TextNode(_) => (),
+            _ => self.current_frame().mustache_count += 1,
+        }
+    }
+
+    pub fn text_node(&mut self, text: ast::TextNode) {
+        let frame = self.current_frame();
+        if text.chars.is_empty() {
+            let mut nodes = frame.blank_child_text_nodes.expect("frame must have child nodes");
+            nodes.push(dom_index_of(frame.children.expect("frame must have childre"), DOMNode::TextNode(text)));
+        }
+    }
+
+    pub fn block_statement(&self, node: ast::BlockStatement) {
+        unimplemented!()
+    }
+
+    pub fn partial_statement(&self, node: ast::PartialStatement) {
+        unimplemented!()
+    }
+
+    pub fn comment_statement(&self, node: ast::CommentStatement) {
+        unimplemented!()
+    }
+
+    pub fn mustache_comment_statement(&self, node: ast::MustacheCommentStatement) {
+        unimplemented!()
+    }
+
+    pub fn mustache_statement(&self, node: ast::MustacheStatement) {
+        unimplemented!()
+    }
+
+    fn get_current_frame(&self) -> Option<&Frame> {
+        self.frame_stack.last()
+    }
+
+    fn push_frame(&mut self) -> &Frame {
+        let frame = Frame::new();
+        self.frame_stack.push(frame);
+        self.get_current_frame().expect("Just pushed frame, so it must be present")
+    }
+
+    fn pop_Frame(&mut self) -> Option<Frame> {
+        self.frame_stack.pop()
+    }
+}
+
+#[derive(PartialEq)]
+enum DOMNode {
+    TextNode(ast::TextNode),
+    ElementNode(ast::ElementNode),
+}
+
+trait IntoSafe<T> : Sized {
+    fn into_safe(&self) -> Option<T>;
+}
+
+impl IntoSafe<DOMNode> for ast::Node {
+    fn into_safe(&self) -> Option<DOMNode> {
+        match self {
+            ast::Node::TextNode(tn) => Some(DOMNode::TextNode(tn.to_owned())),
+            ast::Node::ElementNode(en) => Some(DOMNode::ElementNode(en.clone())),
+            _ => None,
+        }
+    }
+}
+
+impl PartialEq<DOMNode> for ast::Node {
+    fn eq(&self, other: &DOMNode) -> bool {
+        match self.into_safe() {
+            Some(dn) => other == &dn,
+            None => false,
+        }
+    }
+}
+
+fn dom_index_of(nodes: Vec<ast::Node>, dom_node: DOMNode) -> isize {
+    let mut index = -1;
+
+    for i in 0..nodes.len() {
+        let node = nodes.get(i).expect("Only getting nodes within vec bounds");
+
+        match node {
+            ast::Node::TextNode(_) | ast::Node::ElementNode(_) => index += 1,
+            _ => continue,
+        }
+
+        if node == &dom_node {
+            return index
+        }
+    }
+
+    -1
 }
