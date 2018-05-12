@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use std::borrow::ToOwned;
+use std::collections::HashMap;
 
 pub enum Action {
     StartProgram,
@@ -27,7 +27,10 @@ pub mod ast {
 }
 
 pub trait SymbolTable {
-    fn top() -> ProgramSymbolTable where Self : Sized {
+    fn top() -> ProgramSymbolTable
+    where
+        Self: Sized,
+    {
         ProgramSymbolTable::new()
     }
 
@@ -41,11 +44,11 @@ pub trait SymbolTable {
     fn allocate_block(&mut self, name: &str) -> usize;
     fn allocate(&mut self, identifier: &str) -> usize;
 
-    fn child(&mut self, locals: Vec<String>) -> BlockSymbolTable where Self : Sized {
-        let symbols: Vec<usize> = locals
-            .iter()
-            .map(|name| self.allocate(&name))
-            .collect();
+    fn child(&mut self, locals: Vec<String>) -> BlockSymbolTable
+    where
+        Self: Sized,
+    {
+        let symbols: Vec<usize> = locals.iter().map(|name| self.allocate(&name)).collect();
 
         return BlockSymbolTable::new(self, &locals, symbols);
     }
@@ -125,14 +128,14 @@ impl SymbolTable for ProgramSymbolTable {
 }
 
 pub struct BlockSymbolTable<'p> {
-    parent: &'p SymbolTable,
+    parent: &'p mut SymbolTable,
     pub symbols: Vec<String>,
     pub slots: Vec<usize>,
 }
 
 impl<'p> BlockSymbolTable<'p> {
     fn new(
-        parent: &'p SymbolTable,
+        parent: &'p mut SymbolTable,
         symbols: &Vec<String>,
         slots: Vec<usize>,
     ) -> BlockSymbolTable<'p> {
@@ -146,31 +149,51 @@ impl<'p> BlockSymbolTable<'p> {
 
 impl<'p> SymbolTable for BlockSymbolTable<'p> {
     fn has(&self, name: &str) -> bool {
-        unimplemented!()
+        // TODO: this is *dumb*. Generally points to utility of `Vec<&str>`, I
+        // suspect, but will need to see how lifetimes play out.
+        self.symbols.contains(&name.to_owned()) || self.parent.has(name)
     }
 
+    // This implementation is garbage. I hate it. However, it is equivalent to
+    // the TS implementation, so it's a reasonable starting point. It would be
+    // nice not to have to maintain slots and symbols independently, of course.
     fn get(&self, name: &str) -> usize {
-        unimplemented!()
+        let slot = self.symbols.iter().position(|symbol| symbol == name);
+        match slot {
+            Some(slot) => self.slots
+                .iter()
+                .nth(slot)
+                .expect("nth slot and symbol position should play nice")
+                .to_owned(),
+            None => self.parent.get(name),
+        }
     }
 
     fn get_locals_map(&self) -> Dict<usize> {
-        unimplemented!()
+        let mut dict = self.parent.get_locals_map();
+        self.symbols.iter().for_each(|symbol| {
+            dict.insert(symbol.to_owned(), self.get(&symbol));
+        });
+        dict
     }
 
     fn get_eval_info(&self) -> core::EvalInfo {
-        unimplemented!()
+        self.get_locals_map()
+            .values()
+            .map(ToOwned::to_owned)
+            .collect()
     }
 
     fn allocate_named(&mut self, name: &str) -> usize {
-        unimplemented!()
+        self.parent.allocate_named(name)
     }
 
     fn allocate_block(&mut self, name: &str) -> usize {
-        unimplemented!()
+        self.parent.allocate_block(name)
     }
 
     fn allocate(&mut self, identifier: &str) -> usize {
-        unimplemented!()
+        self.parent.allocate(identifier)
     }
 }
 
