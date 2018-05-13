@@ -407,8 +407,9 @@ impl TemplateVisitor {
     pub fn text_node(&mut self, text: ast::TextNode) {
         let frame = self.current_frame();
         if text.chars.is_empty() {
-            let mut nodes = frame.blank_child_text_nodes.expect("frame must have child nodes");
-            nodes.push(dom_index_of(frame.children.expect("frame must have childre"), DOMNode::TextNode(text)));
+            let nodes = frame.blank_child_text_nodes.as_mut().expect("frame must have child nodes");
+            let children = frame.children.as_ref().expect("frame must have children");
+            nodes.push(dom_index_of(children, DOMNode::TextNode(text)));
         }
     }
 
@@ -476,7 +477,7 @@ impl PartialEq<DOMNode> for ast::Node {
     }
 }
 
-fn dom_index_of(nodes: Vec<ast::Node>, dom_node: DOMNode) -> isize {
+fn dom_index_of(nodes: &Vec<ast::Node>, dom_node: DOMNode) -> isize {
     let mut index = -1;
 
     for i in 0..nodes.len() {
