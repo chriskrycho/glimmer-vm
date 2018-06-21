@@ -277,7 +277,8 @@ impl<'p> SymbolTable for BlockSymbolTable<'p> {
     fn get(&self, name: &str) -> usize {
         let slot = self.symbols.iter().position(|symbol| symbol == name);
         match slot {
-            Some(slot) => self.slots
+            Some(slot) => self
+                .slots
                 .iter()
                 .nth(slot)
                 .expect("nth slot and symbol position should play nice")
@@ -363,7 +364,9 @@ impl TemplateVisitor {
     }
 
     pub fn current_frame(&mut self) -> &mut Frame {
-        self.current_frame_actual.as_mut().expect("Expected a current frame")
+        self.current_frame_actual
+            .as_mut()
+            .expect("Expected a current frame")
     }
 
     pub fn visit(&mut self, node: ast::Node) {
@@ -407,14 +410,19 @@ impl TemplateVisitor {
     pub fn text_node(&mut self, text: ast::TextNode) {
         let frame = self.current_frame();
         if text.chars.is_empty() {
-            let nodes = frame.blank_child_text_nodes.as_mut().expect("frame must have child nodes");
+            let nodes = frame
+                .blank_child_text_nodes
+                .as_mut()
+                .expect("frame must have child nodes");
             let children = frame.children.as_ref().expect("frame must have children");
             nodes.push(dom_index_of(children, DOMNode::TextNode(text)));
         }
     }
 
-    pub fn block_statement(&self, node: ast::BlockStatement) {
-        unimplemented!()
+    pub fn block_statement(&mut self, node: ast::BlockStatement) {
+        let frame = self.current_frame();
+        frame.mustache_count += 1;
+        // frame.actions.push(Action)
     }
 
     pub fn partial_statement(&self, node: ast::PartialStatement) {
@@ -440,7 +448,8 @@ impl TemplateVisitor {
     fn push_frame(&mut self) -> &Frame {
         let frame = Frame::new();
         self.frame_stack.push(frame);
-        self.get_current_frame().expect("Just pushed frame, so it must be present")
+        self.get_current_frame()
+            .expect("Just pushed frame, so it must be present")
     }
 
     fn pop_Frame(&mut self) -> Option<Frame> {
@@ -454,7 +463,7 @@ enum DOMNode {
     ElementNode(ast::ElementNode),
 }
 
-trait IntoSafe<T> : Sized {
+trait IntoSafe<T>: Sized {
     fn into_safe(&self) -> Option<T>;
 }
 
@@ -489,7 +498,7 @@ fn dom_index_of(nodes: &Vec<ast::Node>, dom_node: DOMNode) -> isize {
         }
 
         if node == &dom_node {
-            return index
+            return index;
         }
     }
 
