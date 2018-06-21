@@ -1,3 +1,4 @@
+pub mod nodes;
 pub mod template_visitor;
 
 #[cfg(test)]
