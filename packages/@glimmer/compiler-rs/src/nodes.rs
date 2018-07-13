@@ -122,7 +122,7 @@ pub struct MustacheCommentStatement {
     pub value: String,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ElementNode {
     pub tag: String,
     pub self_closing: bool,
@@ -146,7 +146,7 @@ pub struct AttrNode {
     pub value: AttrValue,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct TextNode {
     pub chars: String,
 }

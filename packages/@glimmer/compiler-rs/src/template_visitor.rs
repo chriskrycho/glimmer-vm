@@ -3,7 +3,13 @@ use std::collections::HashMap;
 
 use nodes as ast;
 
-#[derive(Copy, Clone)]
+#[derive(Clone, Debug)]
+pub enum Mustache {
+    Statement(ast::MustacheStatement),
+    Partial(ast::PartialStatement),
+}
+
+#[derive(Clone, Debug)]
 pub enum Action {
     StartProgram,
     EndProgram,
@@ -14,7 +20,11 @@ pub enum Action {
         child_index: Option<usize>,
         child_count: Option<usize>,
     },
-    Mustache,
+    Mustache {
+        mustache: Mustache,
+        child_index: Option<usize>,
+        child_count: Option<usize>,
+    },
     OpenElement,
     CloseElement,
     Text,
@@ -204,7 +214,7 @@ pub struct JSObject;
 
 pub struct Frame {
     pub parent_node: Option<JSObject>,
-    pub children: Option<Vec<ast::Node>>,
+    pub children: Option<Vec<ast::Nodes>>,
     pub child_index: Option<usize>,
     pub child_count: Option<usize>,
     pub child_template_count: usize,
@@ -321,7 +331,13 @@ impl TemplateVisitor {
     }
 
     pub fn partial_statement(&self, node: ast::PartialStatement) {
-        unimplemented!()
+        let frame = self.current_frame();
+        frame.mustache_count += 1;
+        frame.actions.push(Action::Mustache {
+            mustache: Mustache::Partial(node),
+            child_index: frame.child_index,
+            child_count: frame.child_count,
+        })
     }
 
     pub fn comment_statement(&self, node: ast::CommentStatement) {
@@ -362,17 +378,17 @@ trait IntoSafe<T>: Sized {
     fn into_safe(&self) -> Option<T>;
 }
 
-impl IntoSafe<DOMNode> for ast::Node {
+impl IntoSafe<DOMNode> for ast::Nodes {
     fn into_safe(&self) -> Option<DOMNode> {
         match self {
-            ast::Node::TextNode(tn) => Some(DOMNode::TextNode(tn.to_owned())),
-            ast::Node::ElementNode(en) => Some(DOMNode::ElementNode(en.clone())),
+            ast::Nodes::TextNode(tn) => Some(DOMNode::TextNode(tn.to_owned())),
+            ast::Nodes::ElementNode(en) => Some(DOMNode::ElementNode(en.clone())),
             _ => None,
         }
     }
 }
 
-impl PartialEq<DOMNode> for ast::Node {
+impl PartialEq<DOMNode> for ast::Nodes {
     fn eq(&self, other: &DOMNode) -> bool {
         match self.into_safe() {
             Some(dn) => other == &dn,
@@ -381,14 +397,14 @@ impl PartialEq<DOMNode> for ast::Node {
     }
 }
 
-fn dom_index_of(nodes: &Vec<ast::Node>, dom_node: DOMNode) -> isize {
+fn dom_index_of(nodes: &Vec<ast::Nodes>, dom_node: DOMNode) -> isize {
     let mut index = -1;
 
     for i in 0..nodes.len() {
         let node = nodes.get(i).expect("Only getting nodes within vec bounds");
 
         match node {
-            ast::Node::TextNode(_) | ast::Node::ElementNode(_) => index += 1,
+            ast::Nodes::TextNode(_) | ast::Nodes::ElementNode(_) => index += 1,
             _ => continue,
         }
 
