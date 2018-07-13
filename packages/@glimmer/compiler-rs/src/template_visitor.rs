@@ -28,7 +28,11 @@ pub enum Action {
     OpenElement,
     CloseElement,
     Text,
-    Comment,
+    Comment {
+        comment: ast::CommentStatement,
+        child_index: Option<usize>,
+        child_count: Option<usize>,
+    },
 }
 
 type Dict<T> = HashMap<String, T>;
@@ -273,7 +277,7 @@ impl TemplateVisitor {
             ast::Nodes::PartialStatement(partial) => self.partial_statement(partial),
             ast::Nodes::CommentStatement(comment) => self.comment_statement(comment),
             ast::Nodes::MustacheCommentStatement(mustache_comment) => {
-                self.mustache_comment_statement(mustache_comment)
+                // Intentional empty: Handlebars comments should not affect output.
             }
             ast::Nodes::MustacheStatement(mustache_statement) => {
                 self.mustache_statement(mustache_statement)
@@ -341,15 +345,22 @@ impl TemplateVisitor {
     }
 
     pub fn comment_statement(&self, node: ast::CommentStatement) {
-        unimplemented!()
-    }
-
-    pub fn mustache_comment_statement(&self, node: ast::MustacheCommentStatement) {
-        unimplemented!()
+        let frame = self.current_frame();
+        frame.actions.push(Action::Comment {
+            comment: node,
+            child_index: frame.child_index,
+            child_count: frame.child_count,
+        });
     }
 
     pub fn mustache_statement(&self, node: ast::MustacheStatement) {
-        unimplemented!()
+        let frame = self.current_frame();
+        frame.mustache_count += 1;
+        frame.actions.push(Action::Mustache {
+            mustache: Mustache::Statement(node),
+            child_index: frame.child_index,
+            child_count: frame.child_count,
+        });
     }
 
     fn get_current_frame(&self) -> Option<&Frame> {
