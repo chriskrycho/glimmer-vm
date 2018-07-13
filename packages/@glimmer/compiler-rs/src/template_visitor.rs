@@ -218,7 +218,7 @@ pub struct JSObject;
 
 pub struct Frame {
     pub parent_node: Option<JSObject>,
-    pub children: Option<Vec<ast::Nodes>>,
+    pub children: Option<Vec<ast::NodeType>>,
     pub child_index: Option<usize>,
     pub child_count: Option<usize>,
     pub child_template_count: usize,
@@ -267,19 +267,19 @@ impl TemplateVisitor {
             .expect("Expected a current frame")
     }
 
-    pub fn visit(&mut self, node: ast::Nodes) {
+    pub fn visit(&mut self, node: ast::NodeType) {
         match node {
-            ast::Nodes::Program(program) => self.program(program),
-            ast::Nodes::ElementNode(element) => self.element_node(element),
-            ast::Nodes::AttrNode(attr) => self.attr_node(attr),
-            ast::Nodes::TextNode(text) => self.text_node(text),
-            ast::Nodes::BlockStatement(block) => self.block_statement(block),
-            ast::Nodes::PartialStatement(partial) => self.partial_statement(partial),
-            ast::Nodes::CommentStatement(comment) => self.comment_statement(comment),
-            ast::Nodes::MustacheCommentStatement(mustache_comment) => {
+            ast::NodeType::Program(program) => self.program(program),
+            ast::NodeType::ElementNode(element) => self.element_node(element),
+            ast::NodeType::AttrNode(attr) => self.attr_node(attr),
+            ast::NodeType::TextNode(text) => self.text_node(text),
+            ast::NodeType::BlockStatement(block) => self.block_statement(block),
+            ast::NodeType::PartialStatement(partial) => self.partial_statement(partial),
+            ast::NodeType::CommentStatement(comment) => self.comment_statement(comment),
+            ast::NodeType::MustacheCommentStatement(mustache_comment) => {
                 // Intentional empty: Handlebars comments should not affect output.
             }
-            ast::Nodes::MustacheStatement(mustache_statement) => {
+            ast::NodeType::MustacheStatement(mustache_statement) => {
                 self.mustache_statement(mustache_statement)
             }
             _ => unimplemented!(),
@@ -328,9 +328,9 @@ impl TemplateVisitor {
         });
 
         if let Some(inverse) = node.inverse {
-            self.visit(ast::Nodes::Program(inverse))
+            self.visit(ast::NodeType::Program(inverse))
         } else {
-            self.visit(ast::Nodes::Program(node.program))
+            self.visit(ast::NodeType::Program(node.program))
         }
     }
 
@@ -389,17 +389,17 @@ trait IntoSafe<T>: Sized {
     fn into_safe(&self) -> Option<T>;
 }
 
-impl IntoSafe<DOMNode> for ast::Nodes {
+impl IntoSafe<DOMNode> for ast::NodeType {
     fn into_safe(&self) -> Option<DOMNode> {
         match self {
-            ast::Nodes::TextNode(tn) => Some(DOMNode::TextNode(tn.to_owned())),
-            ast::Nodes::ElementNode(en) => Some(DOMNode::ElementNode(en.clone())),
+            ast::NodeType::TextNode(tn) => Some(DOMNode::TextNode(tn.to_owned())),
+            ast::NodeType::ElementNode(en) => Some(DOMNode::ElementNode(en.clone())),
             _ => None,
         }
     }
 }
 
-impl PartialEq<DOMNode> for ast::Nodes {
+impl PartialEq<DOMNode> for ast::NodeType {
     fn eq(&self, other: &DOMNode) -> bool {
         match self.into_safe() {
             Some(dn) => other == &dn,
@@ -408,14 +408,14 @@ impl PartialEq<DOMNode> for ast::Nodes {
     }
 }
 
-fn dom_index_of(nodes: &Vec<ast::Nodes>, dom_node: DOMNode) -> isize {
+fn dom_index_of(nodes: &Vec<ast::NodeType>, dom_node: DOMNode) -> isize {
     let mut index = -1;
 
     for i in 0..nodes.len() {
         let node = nodes.get(i).expect("Only getting nodes within vec bounds");
 
         match node {
-            ast::Nodes::TextNode(_) | ast::Nodes::ElementNode(_) => index += 1,
+            ast::NodeType::TextNode(_) | ast::NodeType::ElementNode(_) => index += 1,
             _ => continue,
         }
 

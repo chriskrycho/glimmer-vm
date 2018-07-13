@@ -49,14 +49,14 @@ pub enum Statement {
 }
 
 impl Statement {
-    pub fn into_node(self) -> Nodes {
+    pub fn into_node(self) -> NodeType {
         match self {
-            Statement::MustacheStatement(ms) => Nodes::MustacheStatement(ms),
-            Statement::BlockStatement(bs) => Nodes::BlockStatement(bs),
-            Statement::PartialStatement(ps) => Nodes::PartialStatement(ps),
-            Statement::MustacheComment(mc) => Nodes::MustacheCommentStatement(mc),
-            Statement::TextNode(tn) => Nodes::TextNode(tn),
-            Statement::ElementNode(en) => Nodes::ElementNode(en),
+            Statement::MustacheStatement(ms) => NodeType::MustacheStatement(ms),
+            Statement::BlockStatement(bs) => NodeType::BlockStatement(bs),
+            Statement::PartialStatement(ps) => NodeType::PartialStatement(ps),
+            Statement::MustacheComment(mc) => NodeType::MustacheCommentStatement(mc),
+            Statement::TextNode(tn) => NodeType::TextNode(tn),
+            Statement::ElementNode(en) => NodeType::ElementNode(en),
         }
     }
 }
@@ -268,11 +268,11 @@ pub struct StripFlags {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Node {
     pub loc: SourceLocation,
-    pub node: Nodes,
+    pub node: NodeType,
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum Nodes {
+pub enum NodeType {
     Program(Program),
     ElementNode(ElementNode),
     AttrNode(AttrNode),
