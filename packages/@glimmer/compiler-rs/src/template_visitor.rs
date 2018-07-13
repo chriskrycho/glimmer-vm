@@ -1,6 +1,8 @@
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 
+use nodes as ast;
+
 #[derive(Copy, Clone)]
 pub enum Action {
     StartProgram,
@@ -20,127 +22,6 @@ type Dict<T> = HashMap<String, T>;
 // Placeholder -- should be extern?
 pub mod core {
     pub type EvalInfo = Vec<usize>;
-}
-
-// Placeholder -- should be extern?
-pub mod ast {
-    #[derive(PartialEq)]
-    pub struct Program;
-
-    #[derive(Clone, PartialEq)]
-    pub struct ConcatStatement;
-
-    #[derive(Clone, PartialEq)]
-    pub enum AttrValue {
-        TextNode(TextNode),
-        MustacheStatement(MustacheStatement),
-        ConcatStatement(ConcatStatement),
-    }
-
-    #[derive(Clone, PartialEq)]
-    pub struct AttrNode {
-        pub name: String,
-        pub value: AttrValue,
-    }
-
-    #[derive(Clone, PartialEq)]
-    pub struct ElementModifierStatement;
-
-    #[derive(Clone, PartialEq)]
-    pub struct MustacheStatement;
-
-    #[derive(Clone, PartialEq)]
-    pub struct BlockStatement;
-
-    #[derive(Clone, PartialEq)]
-    pub struct PartialStatement;
-
-    #[derive(Clone, PartialEq)]
-    pub struct TextNode {
-        pub chars: String,
-    }
-
-    #[derive(Clone, PartialEq)]
-    pub struct CommentStatement {
-        value: String,
-    }
-
-    #[derive(Clone, PartialEq)]
-    pub struct MustacheCommentStatement {
-        value: String,
-    }
-
-    #[derive(Clone, PartialEq)]
-    pub struct PathExpression;
-
-    #[derive(Clone, PartialEq)]
-    pub struct SubExpression;
-
-    #[derive(Clone, PartialEq)]
-    pub struct Hash;
-
-    #[derive(Clone, PartialEq)]
-    pub struct HashPair;
-
-    #[derive(Clone, PartialEq)]
-    pub struct StringLiteral;
-
-    #[derive(Clone, PartialEq)]
-    pub struct BooleanLiteral;
-
-    #[derive(Clone, PartialEq)]
-    pub struct NumberLiteral;
-
-    #[derive(Clone, PartialEq)]
-    pub struct UndefinedLiteral;
-
-    #[derive(Clone, PartialEq)]
-    pub struct NullLiteral;
-
-    #[derive(Clone, PartialEq)]
-    pub struct ElementNode {
-        tag: String,
-        attributes: Vec<AttrNode>,
-        block_params: Vec<String>,
-        modifiers: Vec<ElementModifierStatement>,
-        comments: Vec<MustacheCommentStatement>,
-        children: Vec<Statement>,
-    }
-
-    #[derive(Clone, PartialEq)]
-    pub enum Statement {
-        MustacheStatement(MustacheStatement),
-        BlockStatement(BlockStatement),
-        PartialStatement(PartialStatement),
-        MustacheCommentStatement(MustacheCommentStatement),
-        CommentStatement(CommentStatement),
-        TextNode(TextNode),
-        ElementNode(ElementNode),
-    }
-
-    #[derive(PartialEq)]
-    pub enum Node {
-        Program(Program),
-        ElementNode(ElementNode),
-        AttrNode(AttrNode),
-        TextNode(TextNode),
-        MustacheStatement(MustacheStatement),
-        BlockStatement(BlockStatement),
-        PartialStatement(PartialStatement),
-        ConcatStatement(ConcatStatement),
-        MustacheCommentStatement(MustacheCommentStatement),
-        ElementModifierStatement(ElementModifierStatement),
-        CommentStatement(CommentStatement),
-        PathExpression(PathExpression),
-        SubExpression(SubExpression),
-        Hash(Hash),
-        HashPair(HashPair),
-        StringLiteral(StringLiteral),
-        BooleanLiteral(BooleanLiteral),
-        NumberLiteral(NumberLiteral),
-        UndefinedLiteral(UndefinedLiteral),
-        NullLiteral(NullLiteral),
-    }
 }
 
 pub trait SymbolTable {
@@ -369,19 +250,19 @@ impl TemplateVisitor {
             .expect("Expected a current frame")
     }
 
-    pub fn visit(&mut self, node: ast::Node) {
+    pub fn visit(&mut self, node: ast::Nodes) {
         match node {
-            ast::Node::Program(program) => self.program(program),
-            ast::Node::ElementNode(element) => self.element_node(element),
-            ast::Node::AttrNode(attr) => self.attr_node(attr),
-            ast::Node::TextNode(text) => self.text_node(text),
-            ast::Node::BlockStatement(block) => self.block_statement(block),
-            ast::Node::PartialStatement(partial) => self.partial_statement(partial),
-            ast::Node::CommentStatement(comment) => self.comment_statement(comment),
-            ast::Node::MustacheCommentStatement(mustache_comment) => {
+            ast::Nodes::Program(program) => self.program(program),
+            ast::Nodes::ElementNode(element) => self.element_node(element),
+            ast::Nodes::AttrNode(attr) => self.attr_node(attr),
+            ast::Nodes::TextNode(text) => self.text_node(text),
+            ast::Nodes::BlockStatement(block) => self.block_statement(block),
+            ast::Nodes::PartialStatement(partial) => self.partial_statement(partial),
+            ast::Nodes::CommentStatement(comment) => self.comment_statement(comment),
+            ast::Nodes::MustacheCommentStatement(mustache_comment) => {
                 self.mustache_comment_statement(mustache_comment)
             }
-            ast::Node::MustacheStatement(mustache_statement) => {
+            ast::Nodes::MustacheStatement(mustache_statement) => {
                 self.mustache_statement(mustache_statement)
             }
             _ => unimplemented!(),
