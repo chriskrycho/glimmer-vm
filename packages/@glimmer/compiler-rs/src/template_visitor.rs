@@ -9,7 +9,11 @@ pub enum Action {
     EndProgram,
     StartBlock,
     EndBlock,
-    Block,
+    Block {
+        block: ast::BlockStatement,
+        child_index: Option<usize>,
+        child_count: Option<usize>,
+    },
     Mustache,
     OpenElement,
     CloseElement,
@@ -301,8 +305,19 @@ impl TemplateVisitor {
 
     pub fn block_statement(&mut self, node: ast::BlockStatement) {
         let frame = self.current_frame();
+
         frame.mustache_count += 1;
-        // frame.actions.push(Action)
+        frame.actions.push(Action::Block {
+            block: node,
+            child_index: frame.child_index,
+            child_count: frame.child_count,
+        });
+
+        if let Some(inverse) = node.inverse {
+            self.visit(ast::Nodes::Program(inverse))
+        } else {
+            self.visit(ast::Nodes::Program(node.program))
+        }
     }
 
     pub fn partial_statement(&self, node: ast::PartialStatement) {
