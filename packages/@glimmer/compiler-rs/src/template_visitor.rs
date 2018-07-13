@@ -1,5 +1,6 @@
 use std::borrow::ToOwned;
 use std::collections::HashMap;
+use std::rc::Rc;
 
 use nodes as ast;
 
@@ -42,37 +43,9 @@ pub mod core {
     pub type EvalInfo = Vec<usize>;
 }
 
-pub trait SymbolTable {
-    fn top() -> ProgramSymbolTable
-    where
-        Self: Sized,
-    {
-        ProgramSymbolTable::new()
-    }
-
-    fn has(&self, name: &str) -> bool;
-    fn get(&self, name: &str) -> usize;
-
-    fn get_locals_map(&self) -> Dict<usize>;
-    fn get_eval_info(&self) -> core::EvalInfo;
-
-    fn allocate_named(&mut self, name: &str) -> usize;
-    fn allocate_block(&mut self, name: &str) -> usize;
-    fn allocate(&mut self, identifier: &str) -> usize;
-
-    fn child(&mut self, locals: Vec<String>) -> BlockSymbolTable
-    where
-        Self: Sized,
-    {
-        let symbols: Vec<usize> = locals.iter().map(|name| self.allocate(&name)).collect();
-
-        return BlockSymbolTable::new(self, &locals, symbols);
-    }
-}
-
+#[derive(Debug, PartialEq)]
 pub struct ProgramSymbolTable {
-    pub symbols: Vec<String>,
-
+    symbols: Vec<String>,
     size: usize,
     named: Dict<usize>,
     blocks: Dict<usize>,
@@ -89,79 +62,129 @@ impl ProgramSymbolTable {
     }
 }
 
-impl SymbolTable for ProgramSymbolTable {
-    fn has(&self, _name: &str) -> bool {
-        false
-    }
-
-    fn get(&self, _name: &str) -> usize {
-        unreachable!()
-    }
-
-    fn get_locals_map(&self) -> Dict<usize> {
-        Dict::new()
-    }
-
-    fn get_eval_info(&self) -> core::EvalInfo {
-        core::EvalInfo::new()
-    }
-
-    // This is essentially a direct transcription of the version in TypeScript,
-    // but it doesn't actually make much sense to me in even the medium-term in
-    // Rust, for the simple reason that the "allocation" here is allocating a
-    // string instead of just storing an actual reference. (Something like this
-    // still might make sense if we want to avoid hairy lifetimes, but given
-    // that's Rust's strong suit...)
-    fn allocate_named(&mut self, name: &str) -> usize {
-        match self.named.get(name).map(ToOwned::to_owned) {
-            Some(named) => named,
-            None => {
-                let named = self.allocate(name);
-                self.named.insert(name.to_owned(), named);
-                named
-            }
-        }
-    }
-
-    fn allocate_block(&mut self, name: &str) -> usize {
-        let block = self.blocks.get(name).map(ToOwned::to_owned);
-        match block {
-            Some(block) => block.to_owned(),
-            None => {
-                let block = self.allocate(&format!("&{}", name));
-                self.blocks.insert(name.to_owned(), block);
-                block
-            }
-        }
-    }
-
-    fn allocate(&mut self, identifier: &str) -> usize {
-        self.symbols.push(identifier.to_owned());
-        self.size += 1;
-        self.size
-    }
+#[derive(Debug, PartialEq)]
+pub struct BlockSymbolTable {
+    parent: Rc<SymbolTable>,
+    symbols: Vec<String>,
+    slots: Vec<usize>,
 }
 
-pub struct BlockSymbolTable<'p> {
-    parent: &'p mut SymbolTable,
-    pub symbols: Vec<String>,
-    pub slots: Vec<usize>,
-}
-
-impl<'p> BlockSymbolTable<'p> {
-    fn new(
-        parent: &'p mut SymbolTable,
-        symbols: &Vec<String>,
-        slots: Vec<usize>,
-    ) -> BlockSymbolTable<'p> {
+impl BlockSymbolTable {
+    fn new(parent: Rc<SymbolTable>, symbols: &Vec<String>, slots: Vec<usize>) -> BlockSymbolTable {
         BlockSymbolTable {
-            parent,
+            parent: parent.clone(),
             symbols: symbols.to_vec(),
             slots: slots.to_vec(),
         }
     }
 }
 
+#[derive(Debug, PartialEq)]
+pub enum SymbolTable {
+    Program(ProgramSymbolTable),
+    Block(BlockSymbolTable),
+}
+
+impl SymbolTable {
+    fn top() -> SymbolTable
+    where
+        Self: Sized,
+    {
+        SymbolTable::Program(ProgramSymbolTable::new())
+    }
+
+    fn has(&self, name: &str) -> bool {
+        match self {
+            SymbolTable::Program(program) => false,
+            SymbolTable::Block(block) => unimplemented!(),
+        }
+    }
+
+    fn get(&self, name: &str) -> usize {
+        match self {
+            SymbolTable::Program(program) => unreachable!(),
+            SymbolTable::Block(block) => unimplemented!(),
+        }
+    }
+
+    fn get_locals_map(&self) -> Dict<usize> {
+        match self {
+            SymbolTable::Program(program) => Dict::new(),
+            SymbolTable::Block(block) => unimplemented!(),
+        }
+    }
+
+    fn get_eval_info(&self) -> core::EvalInfo {
+        match self {
+            SymbolTable::Program(program) => core::EvalInfo::new(),
+            SymbolTable::Block(block) => unimplemented!(),
+        }
+    }
+
+    fn allocate_named(&mut self, name: &str) -> usize {
+        match self {
+            // This is essentially a direct transcription of the version in
+            // TypeScript, but it doesn't actually make much sense to me in even
+            // the medium-term in Rust, for the simple reason that the
+            // "allocation" here is allocating a string instead of just storing
+            // an actual reference. (Something like this still might make sense
+            // if we want to avoid hairy lifetimes, but given that's Rust's
+            // strong suit...)
+            SymbolTable::Program(program) => match program.named.get(name).map(ToOwned::to_owned) {
+                Some(named) => named,
+                None => {
+                    let named = self.allocate(name);
+                    program.named.insert(name.to_owned(), named);
+                    named
+                }
+            },
+            SymbolTable::Block(block) => unimplemented!(),
+        }
+    }
+
+    fn allocate_block(&mut self, name: &str) -> usize {
+        match self {
+            SymbolTable::Program(program) => {
+                let block = program.blocks.get(name).map(ToOwned::to_owned);
+                match block {
+                    Some(block) => block.to_owned(),
+                    None => {
+                        let block = self.allocate(&format!("&{}", name));
+                        program.blocks.insert(name.to_owned(), block);
+                        block
+                    }
+                }
+            }
+            SymbolTable::Block(block) => unimplemented!(),
+        }
+    }
+
+    fn allocate(&mut self, identifier: &str) -> usize {
+        match self {
+            SymbolTable::Program(program) => {
+                program.symbols.push(identifier.to_owned());
+                program.size += 1;
+                program.size
+            }
+            SymbolTable::Block(block) => unimplemented!(),
+        }
+    }
+
+    fn child(self_: Rc<SymbolTable>, locals: Vec<String>) -> SymbolTable {
+        let symbols: Vec<usize> = locals
+            .iter()
+            .map(|name| {
+                Rc::get_mut(&mut self_)
+                    .expect("this may literally explode -- likely other references here")
+                    .allocate(&name)
+            })
+            .collect();
+
+        SymbolTable::Block(BlockSymbolTable::new(self_.clone(), &locals, symbols))
+    }
+}
+
+/*
 impl<'p> SymbolTable for BlockSymbolTable<'p> {
     fn has(&self, name: &str) -> bool {
         // TODO: this is *dumb*. Generally points to utility of `Vec<&str>`, I
@@ -212,6 +235,7 @@ impl<'p> SymbolTable for BlockSymbolTable<'p> {
         self.parent.allocate(identifier)
     }
 }
+*/
 
 // placeholder -- should be extern?
 pub struct JSObject;
@@ -225,7 +249,7 @@ pub struct Frame {
     pub mustache_count: usize,
     pub actions: Vec<Action>,
     pub blank_child_text_nodes: Option<Vec<isize>>,
-    pub symbols: Option<Box<SymbolTable>>,
+    pub symbols: Option<SymbolTable>,
 }
 
 impl Frame {
@@ -287,11 +311,20 @@ impl TemplateVisitor {
     }
 
     pub fn program(&mut self, program: ast::Program) {
-        unimplemented!()
-        // self.program_depth += 1;
+        self.program_depth += 1;
 
-        // let parentFrame = self.get_current_frame();
-        // let programFrame = self.push_frame();
+        let parent_frame = self.get_current_frame();
+        let program_frame = self.push_frame();
+
+        let symbols = match parent_frame {
+            None => SymbolTable::top(),
+            Some(frame) => frame
+                .symbols
+                .expect("assume there are symbols if there is a frame")
+                .child(program.block_params),
+        };
+
+        program.symbols = Rc::new(symbols);
     }
 
     pub fn element_node(&self, element: ast::ElementNode) {

@@ -1,5 +1,8 @@
 use std::any::Any;
 use std::default::Default;
+use std::rc::Rc;
+
+use super::template_visitor::SymbolTable;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SourceLocation {
@@ -36,6 +39,7 @@ impl Default for Position {
 pub struct Program {
     pub body: Vec<Statement>,
     pub block_params: Vec<String>,
+    pub symbols: Rc<SymbolTable>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -144,6 +148,7 @@ pub struct ElementNode {
     pub modifiers: Vec<ElementModifierStatement>,
     pub comments: Vec<MustacheCommentStatement>,
     pub children: Vec<Statement>,
+    pub symbols: Option<Rc<SymbolTable>>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
