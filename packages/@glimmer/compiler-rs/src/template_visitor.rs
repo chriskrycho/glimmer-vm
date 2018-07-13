@@ -95,8 +95,7 @@ impl SymbolTable for ProgramSymbolTable {
     // still might make sense if we want to avoid hairy lifetimes, but given
     // that's Rust's strong suit...)
     fn allocate_named(&mut self, name: &str) -> usize {
-        let named = self.named.get(name).map(ToOwned::to_owned);
-        match named {
+        match self.named.get(name).map(ToOwned::to_owned) {
             Some(named) => named,
             None => {
                 let named = self.allocate(name);
