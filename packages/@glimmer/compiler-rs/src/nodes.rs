@@ -1,12 +1,14 @@
 use std::any::Any;
 use std::default::Default;
 
+#[derive(Clone, Debug)]
 pub struct SourceLocation {
     pub source: Option<String>,
     pub start: Position,
     pub end: Position,
 }
 
+#[derive(Clone, Debug)]
 pub struct Position {
     /// >= 1
     pub line: u16,
@@ -30,11 +32,13 @@ impl Default for Position {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct Program {
     pub body: Vec<Statement>,
     pub block_params: Vec<String>,
 }
 
+#[derive(Clone, Debug)]
 pub enum Statement {
     MustacheStatement(MustacheStatement),
     BlockStatement(BlockStatement),
@@ -44,11 +48,13 @@ pub enum Statement {
     ElementNode,
 }
 
+#[derive(Clone, Debug)]
 pub enum CallExpression {
     PathExpression(PathExpression),
     SubExpression(SubExpression),
 }
 
+#[derive(Clone, Debug)]
 pub struct Call {
     pub name: Option<CallExpression>,
     pub path: PathExpression,
@@ -56,11 +62,13 @@ pub struct Call {
     pub hash: Hash,
 }
 
+#[derive(Clone, Debug)]
 pub enum MustachePath {
     Path(PathExpression),
     Literal(Literal),
 }
 
+#[derive(Clone, Debug)]
 pub struct MustacheStatement {
     pub path: MustachePath,
     pub params: Vec<Expression>,
@@ -68,6 +76,7 @@ pub struct MustacheStatement {
     pub escaped: bool,
 }
 
+#[derive(Clone, Debug)]
 pub struct BlockStatement {
     pub path: PathExpression,
     pub params: Vec<Expression>,
@@ -76,12 +85,14 @@ pub struct BlockStatement {
     pub inverse: Option<Program>,
 }
 
+#[derive(Clone, Debug)]
 pub struct ElementModifierStatement {
     pub path: PathExpression,
     pub params: Vec<Expression>,
     pub hash: Hash,
 }
 
+#[derive(Clone, Debug)]
 pub struct PartialStatement {
     pub name: CallExpression,
     pub params: Vec<Expression>,
@@ -101,14 +112,17 @@ pub fn is_call(node: &Any) -> bool {
             .unwrap_or(false)
 }
 
+#[derive(Clone, Debug)]
 pub struct CommentStatement {
     pub value: String,
 }
 
+#[derive(Clone, Debug)]
 pub struct MustacheCommentStatement {
     pub value: String,
 }
 
+#[derive(Clone, Debug)]
 pub struct ElementNode {
     pub tag: String,
     pub self_closing: bool,
@@ -119,36 +133,43 @@ pub struct ElementNode {
     pub children: Vec<Statement>,
 }
 
+#[derive(Clone, Debug)]
 pub enum AttrValue {
     TextNode(TextNode),
     MustacheStatement(MustacheStatement),
     ConcatStatement(ConcatStatement),
 }
 
+#[derive(Clone, Debug)]
 pub struct AttrNode {
     pub name: String,
     pub value: AttrValue,
 }
 
+#[derive(Clone, Debug)]
 pub struct TextNode {
     pub chars: String,
 }
 
+#[derive(Clone, Debug)]
 pub enum ConcatParts {
     TextNode(TextNode),
     MustacheStatement(MustacheStatement),
 }
 
+#[derive(Clone, Debug)]
 pub struct ConcatStatement {
     pub parts: Vec<ConcatParts>,
 }
 
+#[derive(Clone, Debug)]
 pub enum Expression {
     SubExpression(SubExpression),
     PathExpression(PathExpression),
     Literal(Literal),
 }
 
+#[derive(Clone, Debug)]
 pub struct SubExpression {
     pub call: Box<Call>,
     pub path: PathExpression,
@@ -156,6 +177,7 @@ pub struct SubExpression {
     pub hash: Hash,
 }
 
+#[derive(Clone, Debug)]
 pub struct PathExpression {
     pub call: Box<Call>,
     pub data: bool,
@@ -164,6 +186,7 @@ pub struct PathExpression {
     pub parts: Vec<String>,
 }
 
+#[derive(Clone, Debug)]
 pub enum Literal {
     StringLiteral(StringLiteral),
     BooleanLiteral(BooleanLiteral),
@@ -172,11 +195,13 @@ pub enum Literal {
     NullLiteral(NullLiteral),
 }
 
+#[derive(Clone, Debug)]
 pub struct StringLiteral {
     pub value: String,
     pub original: String,
 }
 
+#[derive(Clone, Debug)]
 pub struct BooleanLiteral {
     pub value: bool,
     pub original: bool,
@@ -184,46 +209,56 @@ pub struct BooleanLiteral {
 
 /// The type is `f64` because JavaScript `number` type is an IEEE 754 64-bit
 /// floating-point number.
+#[derive(Clone, Debug)]
 pub struct NumberLiteral {
     pub value: f64,
     pub original: f64,
 }
 
 /// A placeholder type to represent the JS `undefined` value/type.
+#[derive(Clone, Debug)]
 pub struct Undefined;
 
 /// A placeholder type to represent the JS `null` value/type.
+#[derive(Clone, Debug)]
 pub struct Null;
 
+#[derive(Clone, Debug)]
 pub struct UndefinedLiteral {
     pub value: Undefined,
     pub original: Undefined,
 }
 
+#[derive(Clone, Debug)]
 pub struct NullLiteral {
     pub value: Null,
     pub original: Null,
 }
 
+#[derive(Clone, Debug)]
 pub struct Hash {
     pub pairs: Vec<HashPair>,
 }
 
+#[derive(Clone, Debug)]
 pub struct HashPair {
     pub key: String,
     pub value: Expression,
 }
 
+#[derive(Clone, Debug)]
 pub struct StripFlags {
     pub open: bool,
     pub close: bool,
 }
 
+#[derive(Clone, Debug)]
 pub struct Node {
     pub loc: SourceLocation,
     pub node: Nodes,
 }
 
+#[derive(Clone, Debug)]
 pub enum Nodes {
     Program(Program),
     ElementNode(ElementNode),
